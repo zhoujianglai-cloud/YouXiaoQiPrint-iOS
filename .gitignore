@@ -1,0 +1,26 @@
+# macOS
+.DS_Store
+
+# Xcode user state and build products
+DerivedData/
+build/
+*.xcuserstate
+xcuserdata/
+*.moved-aside
+*.xccheckout
+*.xcscmblueprint
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Signing and archives
+*.mobileprovision
+*.p12
+*.cer
+*.ipa
+*.xcarchive
+
+# Local tooling
+.env
+*.log
