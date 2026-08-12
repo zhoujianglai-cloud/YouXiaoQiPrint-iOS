@@ -30,6 +30,8 @@ struct AddMaterialView: View {
                 TextField("备注", text: $remarks, axis: .vertical)
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.background)
         .navigationTitle("添加模版")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -70,4 +72,3 @@ struct AddMaterialView: View {
         dismiss()
     }
 }
-

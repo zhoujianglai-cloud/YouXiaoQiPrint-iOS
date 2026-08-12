@@ -95,6 +95,8 @@ struct MaterialDetailView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.background)
         .navigationTitle(draft.product)
         .navigationBarTitleDisplayMode(.inline)
         .alert("是否删除该产品？", isPresented: $showingDelete) {
