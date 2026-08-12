@@ -91,9 +91,11 @@ struct MaterialListView: View {
     }
 
     private func shortName(_ name: String) -> String {
-        name
+        let shortened = name
             .replacingOccurrences(of: "后厨", with: "")
             .replacingOccurrences(of: "岗位", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return shortened.isEmpty ? name : shortened
     }
 
     private var materialDeleteAlert: Binding<Bool> {
