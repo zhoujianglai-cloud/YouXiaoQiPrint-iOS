@@ -4,6 +4,8 @@ struct MaterialListView: View {
     @EnvironmentObject private var store: MaterialStore
     @State private var selectedType = "all"
     @State private var showingAdd = false
+    @State private var pendingMaterialDelete: Material?
+    @State private var pendingGroupDelete: MaterialGroup?
 
     private var visibleMaterials: [Material] {
         if selectedType == "all" { return store.materials }
@@ -18,9 +20,13 @@ struct MaterialListView: View {
                         selectedType = "all"
                     }
                     ForEach(store.groups) { group in
-                        FilterChip(title: shortName(group.name), selected: selectedType == group.id) {
-                            selectedType = group.id
-                        }
+                        FilterChip(
+                            title: shortName(group.name),
+                            selected: selectedType == group.id,
+                            canDelete: store.canDelete(group),
+                            action: { selectedType = group.id },
+                            deleteAction: { pendingGroupDelete = group }
+                        )
                     }
                 }
                 .padding(.horizontal, 18)
@@ -28,10 +34,11 @@ struct MaterialListView: View {
 
                 LazyVStack(spacing: 14) {
                     ForEach(visibleMaterials) { material in
-                        NavigationLink(value: material) {
-                            MaterialCard(material: material)
-                        }
-                        .buttonStyle(ResponsiveButtonStyle())
+                        DeletableMaterialRow(
+                            material: material,
+                            canDelete: store.canDelete(material),
+                            deleteAction: { pendingMaterialDelete = material }
+                        )
                     }
                 }
                 .padding(.horizontal, 18)
@@ -56,6 +63,31 @@ struct MaterialListView: View {
             }
         }
         .sheet(isPresented: $showingAdd) { NavigationStack { AddMaterialView() } }
+        .alert("删除新增食材？", isPresented: materialDeleteAlert) {
+            Button("删除", role: .destructive) {
+                if let material = pendingMaterialDelete {
+                    store.delete(material)
+                    AppFeedback.success()
+                }
+                pendingMaterialDelete = nil
+            }
+            Button("取消", role: .cancel) { pendingMaterialDelete = nil }
+        } message: {
+            Text("删除后无法恢复“\(pendingMaterialDelete?.product ?? "")”。")
+        }
+        .alert("删除新增分类？", isPresented: groupDeleteAlert) {
+            Button("删除分类", role: .destructive) {
+                if let group = pendingGroupDelete {
+                    store.delete(group)
+                    selectedType = "all"
+                    AppFeedback.success()
+                }
+                pendingGroupDelete = nil
+            }
+            Button("取消", role: .cancel) { pendingGroupDelete = nil }
+        } message: {
+            Text("“\(pendingGroupDelete?.name ?? "")”及其中新增的食材会一起删除，且无法恢复。")
+        }
     }
 
     private func shortName(_ name: String) -> String {
@@ -63,20 +95,30 @@ struct MaterialListView: View {
             .replacingOccurrences(of: "后厨", with: "")
             .replacingOccurrences(of: "岗位", with: "")
     }
+
+    private var materialDeleteAlert: Binding<Bool> {
+        Binding(get: { pendingMaterialDelete != nil }, set: { if !$0 { pendingMaterialDelete = nil } })
+    }
+
+    private var groupDeleteAlert: Binding<Bool> {
+        Binding(get: { pendingGroupDelete != nil }, set: { if !$0 { pendingGroupDelete = nil } })
+    }
 }
 
 struct MaterialSearchView: View {
     @EnvironmentObject private var store: MaterialStore
     @State private var query = ""
+    @State private var pendingDelete: Material?
 
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 14) {
                 ForEach(store.search(query)) { material in
-                    NavigationLink(value: material) {
-                        MaterialCard(material: material)
-                    }
-                    .buttonStyle(ResponsiveButtonStyle())
+                    DeletableMaterialRow(
+                        material: material,
+                        canDelete: store.canDelete(material),
+                        deleteAction: { pendingDelete = material }
+                    )
                 }
             }
             .padding(18)
@@ -85,6 +127,80 @@ struct MaterialSearchView: View {
         .navigationTitle("搜索")
         .navigationDestination(for: Material.self) { MaterialDetailView(material: $0) }
         .searchable(text: $query, prompt: "产品、类别或岗位")
+        .alert("删除新增食材？", isPresented: deleteAlert) {
+            Button("删除", role: .destructive) {
+                if let material = pendingDelete {
+                    store.delete(material)
+                    AppFeedback.success()
+                }
+                pendingDelete = nil
+            }
+            Button("取消", role: .cancel) { pendingDelete = nil }
+        } message: {
+            Text("删除后无法恢复“\(pendingDelete?.product ?? "")”。")
+        }
+    }
+
+    private var deleteAlert: Binding<Bool> {
+        Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } })
+    }
+}
+
+private struct DeletableMaterialRow: View {
+    let material: Material
+    let canDelete: Bool
+    let deleteAction: () -> Void
+    @State private var offset: CGFloat = 0
+
+    var body: some View {
+        ZStack(alignment: .trailing) {
+            if canDelete {
+                Button(role: .destructive) {
+                    AppFeedback.tap()
+                    deleteAction()
+                } label: {
+                    VStack(spacing: 5) {
+                        Image(systemName: "trash.fill")
+                        Text("删除").font(.caption.bold())
+                    }
+                    .foregroundStyle(.white)
+                    .frame(width: 82)
+                    .frame(maxHeight: .infinity)
+                    .background(Color.red, in: RoundedRectangle(cornerRadius: 20))
+                }
+            }
+
+            NavigationLink(value: material) {
+                MaterialCard(material: material)
+            }
+            .buttonStyle(ResponsiveButtonStyle())
+            .offset(x: offset)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 18)
+                    .onChanged { value in
+                        guard canDelete, abs(value.translation.width) > abs(value.translation.height) else { return }
+                        offset = min(0, max(-82, value.translation.width))
+                    }
+                    .onEnded { value in
+                        guard canDelete else { return }
+                        withAnimation(.easeOut(duration: 0.18)) {
+                            offset = value.translation.width < -45 ? -82 : 0
+                        }
+                        if offset < 0 { AppFeedback.tap() }
+                    }
+            )
+            .contextMenu {
+                if canDelete {
+                    Button(role: .destructive) {
+                        AppFeedback.tap()
+                        deleteAction()
+                    } label: {
+                        Label("删除新增食材", systemImage: "trash")
+                    }
+                }
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 }
 
@@ -126,7 +242,9 @@ private struct MaterialCard: View {
 private struct FilterChip: View {
     let title: String
     let selected: Bool
+    var canDelete = false
     let action: () -> Void
+    var deleteAction: () -> Void = {}
 
     var body: some View {
         Button {
@@ -147,5 +265,15 @@ private struct FilterChip: View {
                 }
         }
         .buttonStyle(ResponsiveButtonStyle())
+        .contextMenu {
+            if canDelete {
+                Button(role: .destructive) {
+                    AppFeedback.tap()
+                    deleteAction()
+                } label: {
+                    Label("删除新增分类", systemImage: "trash")
+                }
+            }
+        }
     }
 }

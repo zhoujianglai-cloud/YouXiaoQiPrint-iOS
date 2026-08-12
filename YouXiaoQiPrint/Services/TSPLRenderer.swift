@@ -1,5 +1,40 @@
 import UIKit
 
+enum LabelPrintSettings {
+    static let widthKey = "labelWidthMM"
+    static let heightKey = "labelHeightMM"
+    static let gapKey = "labelGapMM"
+    static let marginKey = "labelHorizontalMarginMM"
+
+    static let defaultWidth = 50.0
+    static let defaultHeight = 40.0
+    static let defaultGap = 1.0
+    static let defaultMargin = 1.5
+
+    static var width: Double { saved(widthKey, default: defaultWidth) }
+    static var height: Double { saved(heightKey, default: defaultHeight) }
+    static var gap: Double { saved(gapKey, default: defaultGap) }
+    static var margin: Double { saved(marginKey, default: defaultMargin) }
+
+    static func save(width: Double, height: Double, gap: Double, margin: Double) {
+        let defaults = UserDefaults.standard
+        defaults.set(width, forKey: widthKey)
+        defaults.set(height, forKey: heightKey)
+        defaults.set(gap, forKey: gapKey)
+        defaults.set(margin, forKey: marginKey)
+    }
+
+    static func reset() {
+        save(width: defaultWidth, height: defaultHeight, gap: defaultGap, margin: defaultMargin)
+    }
+
+    private static func saved(_ key: String, default defaultValue: Double) -> Double {
+        let value = UserDefaults.standard.double(forKey: key)
+        return value > 0 || (key == gapKey && UserDefaults.standard.object(forKey: key) != nil)
+            ? value : defaultValue
+    }
+}
+
 enum TSPLRenderer {
     static let pixelSize = CGSize(width: 376, height: 304)
 
@@ -49,7 +84,8 @@ enum TSPLRenderer {
     }
 
     static func printCommand(for image: UIImage) -> Data {
-        var data = Data("\r\nSIZE 50 mm,40 mm\r\nGAP 1 mm,0 mm\r\nDIRECTION 1\r\nREFERENCE 0,0\r\nDENSITY 1\r\nSET TEAR ON\r\nCLS\r\nBITMAP 12,8,47,304,0,".utf8)
+        let prefix = "\r\nSIZE \(format(LabelPrintSettings.width)) mm,\(format(LabelPrintSettings.height)) mm\r\nGAP \(format(LabelPrintSettings.gap)) mm,0 mm\r\nDIRECTION 1\r\nREFERENCE 0,0\r\nDENSITY 1\r\nSET TEAR ON\r\nCLS\r\nBITMAP \(marginDots),8,47,304,0,"
+        var data = Data(prefix.utf8)
         data.append(monochromeRaster(from: image))
         data.append(Data("\r\nPRINT 1,1\r\n".utf8))
         return data
@@ -57,14 +93,23 @@ enum TSPLRenderer {
 
     static func fastPrintCommand(material: Material, startDate: Date) -> Data {
         let image = labelImage(material: material, startDate: startDate, drawsGrid: true)
-        var data = Data("\r\nSIZE 50 mm,40 mm\r\nGAP 1 mm,0 mm\r\nDIRECTION 1\r\nREFERENCE 0,0\r\nDENSITY 1\r\nSET TEAR ON\r\nCLS\r\n".utf8)
+        let prefix = "\r\nSIZE \(format(LabelPrintSettings.width)) mm,\(format(LabelPrintSettings.height)) mm\r\nGAP \(format(LabelPrintSettings.gap)) mm,0 mm\r\nDIRECTION 1\r\nREFERENCE 0,0\r\nDENSITY 1\r\nSET TEAR ON\r\nCLS\r\n"
+        var data = Data(prefix.utf8)
 
         // Send every visual element, including separators, as sparse raster
         // tiles. GP-M322 applies a different coordinate transform to native
         // BAR commands, which moved the table lines through the title.
-        appendSparseRaster(from: image, originX: 12, originY: 8, to: &data)
+        appendSparseRaster(from: image, originX: marginDots, originY: 8, to: &data)
         data.append(Data("PRINT 1,1\r\n".utf8))
         return data
+    }
+
+    private static var marginDots: Int {
+        max(0, Int((LabelPrintSettings.margin * 8).rounded()))
+    }
+
+    private static func format(_ value: Double) -> String {
+        value.rounded() == value ? String(Int(value)) : String(format: "%.1f", value)
     }
 
     private static func appendSparseRaster(from image: UIImage, originX: Int, originY: Int, to data: inout Data) {

@@ -80,11 +80,13 @@ struct MaterialDetailView: View {
                 }
                 .disabled(!printer.isConnected)
 
-                Button("删除产品", role: .destructive) {
-                    AppFeedback.tap()
-                    showingDelete = true
+                if store.canDelete(draft) {
+                    Button("删除产品", role: .destructive) {
+                        AppFeedback.tap()
+                        showingDelete = true
+                    }
+                        .frame(maxWidth: .infinity)
                 }
-                    .frame(maxWidth: .infinity)
             }
 
             if let actionMessage {

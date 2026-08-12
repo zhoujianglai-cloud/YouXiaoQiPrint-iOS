@@ -7,6 +7,8 @@ final class MaterialStore: ObservableObject {
     private let encoder = JSONEncoder()
     private let seedSchemaVersion = 2
     private let seedSchemaVersionKey = "materialSeedSchemaVersion"
+    private let lastSeedProductId = 160
+    private let lastSeedTypeId = 7
 
     init() {
         load()
@@ -51,7 +53,23 @@ final class MaterialStore: ObservableObject {
     }
 
     func delete(_ material: Material) {
+        guard canDelete(material) else { return }
         materials.removeAll { $0.uuid == material.uuid }
+        save()
+    }
+
+    func canDelete(_ material: Material) -> Bool {
+        material.productId > lastSeedProductId
+    }
+
+    func canDelete(_ group: MaterialGroup) -> Bool {
+        guard let type = Int(group.id), type > lastSeedTypeId else { return false }
+        return group.categories.flatMap(\.materials).allSatisfy(canDelete)
+    }
+
+    func delete(_ group: MaterialGroup) {
+        guard canDelete(group), let type = Int(group.id) else { return }
+        materials.removeAll { $0.type == type }
         save()
     }
 

@@ -87,6 +87,12 @@ struct RootView: View {
 struct SettingsView: View {
     @EnvironmentObject private var store: MaterialStore
     @AppStorage("defaultOperator") private var defaultOperator = ""
+    @State private var width = "50"
+    @State private var height = "40"
+    @State private var gap = "1"
+    @State private var margin = "1.5"
+    @State private var statusMessage: String?
+    @State private var showingResetConfirmation = false
 
     private var previewMaterial: Material? {
         store.materials.first(where: { $0.product == "茉莉茶叶" }) ?? store.materials.first
@@ -103,10 +109,10 @@ struct SettingsView: View {
                 }
 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
-                    ParameterTile(title: "宽度 mm", value: "50")
-                    ParameterTile(title: "高度 mm", value: "40")
-                    ParameterTile(title: "间隙 mm", value: "1")
-                    ParameterTile(title: "左右边距 mm", value: "1.5")
+                    ParameterEditor(title: "宽度 mm", value: $width)
+                    ParameterEditor(title: "高度 mm", value: $height)
+                    ParameterEditor(title: "间隙 mm", value: $gap)
+                    ParameterEditor(title: "左右边距 mm", value: $margin)
                 }
 
                 TextField("默认操作人（可留空）", text: $defaultOperator)
@@ -142,25 +148,100 @@ struct SettingsView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(18)
                 .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 18))
+
+                VStack(spacing: 12) {
+                    Button(action: saveParameters) {
+                        Label("保存参数", systemImage: "checkmark.circle.fill")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 15)
+                            .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(ResponsiveButtonStyle())
+
+                    Button(role: .destructive) {
+                        AppFeedback.tap()
+                        showingResetConfirmation = true
+                    } label: {
+                        Label("恢复默认", systemImage: "arrow.counterclockwise")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 15)
+                            .background(Color.red.opacity(0.10), in: RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(ResponsiveButtonStyle())
+
+                    if let statusMessage {
+                        Label(statusMessage, systemImage: "checkmark.circle.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(.green)
+                    }
+                }
             }
             .padding(20)
         }
         .background(AppTheme.background.ignoresSafeArea())
         .navigationTitle("设置")
+        .onAppear(perform: loadParameters)
+        .alert("恢复默认参数？", isPresented: $showingResetConfirmation) {
+            Button("恢复默认", role: .destructive, action: resetParameters)
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("宽度50 mm、高度40 mm、间隙1 mm、左右边距1.5 mm。")
+        }
+    }
+
+    private func loadParameters() {
+        width = display(LabelPrintSettings.width)
+        height = display(LabelPrintSettings.height)
+        gap = display(LabelPrintSettings.gap)
+        margin = display(LabelPrintSettings.margin)
+    }
+
+    private func saveParameters() {
+        guard let widthValue = number(width), (20...100).contains(widthValue),
+              let heightValue = number(height), (20...100).contains(heightValue),
+              let gapValue = number(gap), (0...10).contains(gapValue),
+              let marginValue = number(margin), (0...10).contains(marginValue) else {
+            statusMessage = "参数格式或范围不正确"
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            return
+        }
+        LabelPrintSettings.save(width: widthValue, height: heightValue, gap: gapValue, margin: marginValue)
+        loadParameters()
+        statusMessage = "参数已保存，下一次打印生效"
+        AppFeedback.success()
+    }
+
+    private func resetParameters() {
+        LabelPrintSettings.reset()
+        loadParameters()
+        statusMessage = "已恢复默认参数"
+        AppFeedback.success()
+    }
+
+    private func number(_ text: String) -> Double? {
+        Double(text.replacingOccurrences(of: ",", with: "."))
+    }
+
+    private func display(_ value: Double) -> String {
+        value.rounded() == value ? String(Int(value)) : String(format: "%.1f", value)
     }
 }
 
-private struct ParameterTile: View {
+private struct ParameterEditor: View {
     let title: String
-    let value: String
+    @Binding var value: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.caption)
                 .foregroundStyle(AppTheme.secondaryText)
-            Text(value)
+            TextField("0", text: $value)
                 .font(.title2.weight(.medium))
+                .keyboardType(.decimalPad)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
