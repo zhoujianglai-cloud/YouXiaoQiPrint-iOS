@@ -111,24 +111,57 @@ struct MaterialSearchView: View {
     @EnvironmentObject private var store: MaterialStore
     @State private var query = ""
     @State private var pendingDelete: Material?
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 14) {
-                ForEach(store.search(query)) { material in
-                    DeletableMaterialRow(
-                        material: material,
-                        canDelete: store.canDelete(material),
-                        deleteAction: { pendingDelete = material }
-                    )
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(AppTheme.secondaryText)
+                TextField("搜索产品、类别或岗位", text: $query)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.search)
+                    .focused($searchFocused)
+                if !query.isEmpty {
+                    Button {
+                        query = ""
+                        AppFeedback.tap()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(AppTheme.secondaryText)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
-            .padding(18)
+            .padding(.horizontal, 15)
+            .frame(height: 48)
+            .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 15))
+            .overlay {
+                RoundedRectangle(cornerRadius: 15)
+                    .stroke(searchFocused ? AppTheme.accent : AppTheme.secondaryText.opacity(0.18), lineWidth: searchFocused ? 1.5 : 1)
+            }
+            .padding(.horizontal, 18)
+            .padding(.bottom, 14)
+
+            ScrollView {
+                LazyVStack(spacing: 14) {
+                    ForEach(store.search(query)) { material in
+                        DeletableMaterialRow(
+                            material: material,
+                            canDelete: store.canDelete(material),
+                            deleteAction: { pendingDelete = material }
+                        )
+                    }
+                }
+                .padding(.horizontal, 18)
+                .padding(.bottom, 24)
+            }
+            .scrollDismissesKeyboard(.interactively)
         }
         .background(AppTheme.background.ignoresSafeArea())
         .navigationTitle("搜索")
         .navigationDestination(for: Material.self) { MaterialDetailView(material: $0) }
-        .searchable(text: $query, prompt: "产品、类别或岗位")
         .alert("删除新增食材？", isPresented: deleteAlert) {
             Button("删除", role: .destructive) {
                 if let material = pendingDelete {
