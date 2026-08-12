@@ -28,6 +28,23 @@
 
 该工程未包含 Apple 签名证书或描述文件，无法预先制作可安装到任意 iPhone 的 IPA。
 
+## iOS 兼容性
+
+- 最低系统版本：iOS 16.0
+- iOS 16、17、18及更高版本：代码兼容
+- iOS 15及以下：无法安装
+- iPhone：完整支持，界面主要针对 iPhone 优化
+- iPad：可以安装运行，但大屏界面尚未进行专项适配
+- Apple Watch：不支持
+- Apple 芯片 Mac：可能以“为 iPad/iPhone 设计”的模式运行，但界面和蓝牙打印未经验证
+- 蓝牙要求：支持 BLE，并授权 App 使用蓝牙
+
+大致支持 iPhone 8、iPhone X及更新机型，前提是设备运行 iOS 16或更高版本。iPhone 7、iPhone 6s及第一代 iPhone SE等最高停留在 iOS 15的设备不受支持。
+
+当前工程使用 SwiftUI、UIKit、CoreBluetooth和本地 JSON 存储，未使用强制要求 iOS 17或更高版本的接口。iOS 16目标已通过编译检查，但目前实际安装和 GP-M322出纸验证集中在项目所连接的测试 iPhone上。
+
+免费 Apple Developer个人签名通常需要定期重新签名安装。这属于签名有效期限制，不属于 iOS兼容性问题。
+
 ## 编译验证
 
 - Xcode 27 beta 4
