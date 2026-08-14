@@ -11,7 +11,7 @@ struct PrinterView: View {
                         .font(.system(size: 30, weight: .semibold))
                         .foregroundStyle(printer.isConnected ? .green : AppTheme.accentBright)
                         .frame(width: 56, height: 56)
-                        .background(AppTheme.chip, in: RoundedRectangle(cornerRadius: 16))
+                        .appGlassRounded(cornerRadius: 16, tint: AppTheme.chip.opacity(0.7), fallback: AppTheme.chip)
 
                     VStack(alignment: .leading, spacing: 5) {
                         Text(printer.statusText)
@@ -24,7 +24,7 @@ struct PrinterView: View {
                     if printer.isSending { ProgressView() }
                 }
                 .padding(20)
-                .background(AppTheme.surfaceRaised, in: RoundedRectangle(cornerRadius: 22))
+                .appGlassRounded(cornerRadius: 22, fallback: AppTheme.surfaceRaised)
 
                 Button {
                     AppFeedback.tap()
@@ -38,7 +38,7 @@ struct PrinterView: View {
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 15)
-                    .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 16))
+                    .appGlassRounded(cornerRadius: 16, tint: AppTheme.accent, interactive: true, fallback: AppTheme.accent)
                 }
                 .buttonStyle(ResponsiveButtonStyle())
 
@@ -57,7 +57,7 @@ struct PrinterView: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 30)
-                        .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 18))
+                        .appGlassRounded(cornerRadius: 18)
                     } else {
                         ForEach(printer.devices) { device in
                             Button {
@@ -81,7 +81,7 @@ struct PrinterView: View {
                                         .foregroundStyle(AppTheme.secondaryText)
                                 }
                                 .padding(17)
-                                .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 17))
+                                .appGlassRounded(cornerRadius: 17, interactive: true)
                             }
                             .buttonStyle(ResponsiveButtonStyle())
                         }
@@ -96,7 +96,7 @@ struct PrinterView: View {
                     TipRow(icon: "ruler", text: "标签规格：50 × 40 mm，间隙 1 mm")
                 }
                 .padding(20)
-                .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 20))
+                .appGlassRounded(cornerRadius: 20)
             }
             .padding(18)
         }

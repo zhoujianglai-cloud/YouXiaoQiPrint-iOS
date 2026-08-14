@@ -46,19 +46,117 @@ struct ResponsiveButtonStyle: ButtonStyle {
     }
 }
 
+private struct AppGlassRoundedModifier: ViewModifier {
+    let cornerRadius: CGFloat
+    let tint: Color?
+    let interactive: Bool
+    let fallback: Color
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            if let tint {
+                content.glassEffect(
+                    .regular.tint(tint).interactive(interactive),
+                    in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                )
+            } else {
+                content.glassEffect(
+                    .regular.interactive(interactive),
+                    in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                )
+            }
+        } else {
+            content.background(fallback, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        }
+    }
+}
+
+private struct AppGlassCapsuleModifier: ViewModifier {
+    let tint: Color?
+    let interactive: Bool
+    let fallback: Color
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            if let tint {
+                content.glassEffect(.regular.tint(tint).interactive(interactive), in: Capsule())
+            } else {
+                content.glassEffect(.regular.interactive(interactive), in: Capsule())
+            }
+        } else {
+            content.background(fallback, in: Capsule())
+        }
+    }
+}
+
+private struct AppGlassCircleModifier: ViewModifier {
+    let tint: Color?
+    let interactive: Bool
+    let fallback: Color
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            if let tint {
+                content.glassEffect(.regular.tint(tint).interactive(interactive), in: Circle())
+            } else {
+                content.glassEffect(.regular.interactive(interactive), in: Circle())
+            }
+        } else {
+            content.background(fallback, in: Circle())
+        }
+    }
+}
+
+extension View {
+    func appGlassRounded(
+        cornerRadius: CGFloat,
+        tint: Color? = nil,
+        interactive: Bool = false,
+        fallback: Color = AppTheme.surface
+    ) -> some View {
+        modifier(AppGlassRoundedModifier(
+            cornerRadius: cornerRadius,
+            tint: tint,
+            interactive: interactive,
+            fallback: fallback
+        ))
+    }
+
+    func appGlassCapsule(
+        tint: Color? = nil,
+        interactive: Bool = false,
+        fallback: Color = AppTheme.surface
+    ) -> some View {
+        modifier(AppGlassCapsuleModifier(tint: tint, interactive: interactive, fallback: fallback))
+    }
+
+    func appGlassCircle(
+        tint: Color? = nil,
+        interactive: Bool = false,
+        fallback: Color = AppTheme.surface
+    ) -> some View {
+        modifier(AppGlassCircleModifier(tint: tint, interactive: interactive, fallback: fallback))
+    }
+}
+
 struct RootView: View {
     @State private var selection = 0
 
     init() {
-        let appearance = UITabBarAppearance()
-        appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = UIColor { traits in
-            traits.userInterfaceStyle == .dark
-                ? UIColor(red: 0.16, green: 0.10, blue: 0.10, alpha: 1)
-                : UIColor(red: 1, green: 0.97, blue: 0.965, alpha: 1)
+        if #unavailable(iOS 26.0) {
+            let appearance = UITabBarAppearance()
+            appearance.configureWithOpaqueBackground()
+            appearance.backgroundColor = UIColor { traits in
+                traits.userInterfaceStyle == .dark
+                    ? UIColor(red: 0.16, green: 0.10, blue: 0.10, alpha: 1)
+                    : UIColor(red: 1, green: 0.97, blue: 0.965, alpha: 1)
+            }
+            UITabBar.appearance().standardAppearance = appearance
+            UITabBar.appearance().scrollEdgeAppearance = appearance
         }
-        UITabBar.appearance().standardAppearance = appearance
-        UITabBar.appearance().scrollEdgeAppearance = appearance
     }
 
     var body: some View {
@@ -118,7 +216,7 @@ struct SettingsView: View {
                 TextField("默认操作人（可留空）", text: $defaultOperator)
                     .font(.body)
                     .padding(18)
-                    .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 16))
+                    .appGlassRounded(cornerRadius: 16, interactive: true)
                     .overlay {
                         RoundedRectangle(cornerRadius: 16)
                             .stroke(AppTheme.secondaryText.opacity(0.35), lineWidth: 1)
@@ -147,7 +245,7 @@ struct SettingsView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(18)
-                .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 18))
+                .appGlassRounded(cornerRadius: 18, fallback: AppTheme.surface)
 
                 VStack(spacing: 12) {
                     Button(action: saveParameters) {
@@ -156,7 +254,7 @@ struct SettingsView: View {
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 15)
-                            .background(AppTheme.accent, in: RoundedRectangle(cornerRadius: 16))
+                            .appGlassRounded(cornerRadius: 16, tint: AppTheme.accent, interactive: true, fallback: AppTheme.accent)
                     }
                     .buttonStyle(ResponsiveButtonStyle())
 
@@ -168,7 +266,7 @@ struct SettingsView: View {
                             .font(.headline)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 15)
-                            .background(Color.red.opacity(0.10), in: RoundedRectangle(cornerRadius: 16))
+                            .appGlassRounded(cornerRadius: 16, tint: Color.red.opacity(0.16), interactive: true, fallback: Color.red.opacity(0.10))
                     }
                     .buttonStyle(ResponsiveButtonStyle())
 
@@ -245,7 +343,7 @@ private struct ParameterEditor: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
-        .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 16))
+        .appGlassRounded(cornerRadius: 16, interactive: true)
         .overlay {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(AppTheme.secondaryText.opacity(0.3), lineWidth: 1)

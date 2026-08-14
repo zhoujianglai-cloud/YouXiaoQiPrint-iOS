@@ -18,6 +18,9 @@ struct MaterialListView: View {
                 Text("食材")
                     .font(.system(size: 38, weight: .bold, design: .rounded))
                     .foregroundStyle(.primary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .appGlassCapsule(fallback: .clear)
 
                 Spacer()
 
@@ -29,7 +32,7 @@ struct MaterialListView: View {
                         .font(.system(size: 23, weight: .semibold))
                         .foregroundStyle(.white)
                         .frame(width: 50, height: 50)
-                        .background(AppTheme.accent, in: Circle())
+                        .appGlassCircle(tint: AppTheme.accent, interactive: true, fallback: AppTheme.accent)
                         .shadow(color: AppTheme.accent.opacity(0.22), radius: 8, y: 4)
                 }
                 .buttonStyle(ResponsiveButtonStyle())
@@ -149,7 +152,7 @@ struct MaterialSearchView: View {
             }
             .padding(.horizontal, 15)
             .frame(height: 48)
-            .background(AppTheme.surface, in: RoundedRectangle(cornerRadius: 15))
+            .appGlassRounded(cornerRadius: 15, interactive: true)
             .overlay {
                 RoundedRectangle(cornerRadius: 15)
                     .stroke(searchFocused ? AppTheme.accent : AppTheme.secondaryText.opacity(0.18), lineWidth: searchFocused ? 1.5 : 1)
@@ -273,10 +276,10 @@ private struct MaterialCard: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, 13)
                 .padding(.vertical, 10)
-                .background(AppTheme.accent, in: Capsule())
+                .appGlassCapsule(tint: AppTheme.accent, fallback: AppTheme.accent)
         }
         .padding(18)
-        .background(AppTheme.surfaceRaised, in: RoundedRectangle(cornerRadius: 20))
+        .appGlassRounded(cornerRadius: 20, interactive: true, fallback: AppTheme.surfaceRaised)
         .shadow(color: .black.opacity(0.04), radius: 8, y: 3)
     }
 
@@ -304,7 +307,12 @@ private struct FilterChip: View {
                 .foregroundStyle(selected ? .white : .primary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 11)
-                .background(selected ? AppTheme.accent : AppTheme.surface, in: RoundedRectangle(cornerRadius: 12))
+                .appGlassRounded(
+                    cornerRadius: 12,
+                    tint: selected ? AppTheme.accent : nil,
+                    interactive: true,
+                    fallback: selected ? AppTheme.accent : AppTheme.surface
+                )
                 .overlay {
                     if !selected {
                         RoundedRectangle(cornerRadius: 12)
