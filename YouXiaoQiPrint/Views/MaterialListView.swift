@@ -13,55 +13,68 @@ struct MaterialListView: View {
     }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 0, pinnedViews: []) {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 94), spacing: 10)], spacing: 10) {
-                    FilterChip(title: "全部", selected: selectedType == "all") {
-                        selectedType = "all"
-                    }
-                    ForEach(store.groups) { group in
-                        FilterChip(
-                            title: shortName(group.name),
-                            selected: selectedType == group.id,
-                            canDelete: store.canDelete(group),
-                            action: { selectedType = group.id },
-                            deleteAction: { pendingGroupDelete = group }
-                        )
-                    }
-                }
-                .padding(.horizontal, 18)
-                .padding(.bottom, 18)
+        VStack(spacing: 0) {
+            HStack(alignment: .center, spacing: 16) {
+                Text("食材")
+                    .font(.system(size: 38, weight: .bold, design: .rounded))
+                    .foregroundStyle(.primary)
 
-                LazyVStack(spacing: 14) {
-                    ForEach(visibleMaterials) { material in
-                        DeletableMaterialRow(
-                            material: material,
-                            canDelete: store.canDelete(material),
-                            deleteAction: { pendingMaterialDelete = material }
-                        )
-                    }
-                }
-                .padding(.horizontal, 18)
-                .padding(.bottom, 28)
-            }
-        }
-        .background(AppTheme.background.ignoresSafeArea())
-        .navigationTitle("食材")
-        .navigationDestination(for: Material.self) { MaterialDetailView(material: $0) }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+                Spacer()
+
                 Button {
                     AppFeedback.tap()
                     showingAdd = true
                 } label: {
                     Image(systemName: "plus")
-                        .font(.headline)
+                        .font(.system(size: 23, weight: .semibold))
                         .foregroundStyle(.white)
-                        .frame(width: 36, height: 36)
+                        .frame(width: 50, height: 50)
                         .background(AppTheme.accent, in: Circle())
+                        .shadow(color: AppTheme.accent.opacity(0.22), radius: 8, y: 4)
+                }
+                .buttonStyle(ResponsiveButtonStyle())
+                .accessibilityLabel("添加食材")
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 20)
+
+            ScrollView {
+                LazyVStack(spacing: 0, pinnedViews: []) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 94), spacing: 10)], spacing: 10) {
+                        FilterChip(title: "全部", selected: selectedType == "all") {
+                            selectedType = "all"
+                        }
+                        ForEach(store.groups) { group in
+                            FilterChip(
+                                title: shortName(group.name),
+                                selected: selectedType == group.id,
+                                canDelete: store.canDelete(group),
+                                action: { selectedType = group.id },
+                                deleteAction: { pendingGroupDelete = group }
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 18)
+
+                    LazyVStack(spacing: 14) {
+                        ForEach(visibleMaterials) { material in
+                            DeletableMaterialRow(
+                                material: material,
+                                canDelete: store.canDelete(material),
+                                deleteAction: { pendingMaterialDelete = material }
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 28)
                 }
             }
         }
+        .background(AppTheme.background.ignoresSafeArea())
+        .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(for: Material.self) { MaterialDetailView(material: $0) }
         .sheet(isPresented: $showingAdd) { NavigationStack { AddMaterialView() } }
         .alert("删除新增食材？", isPresented: materialDeleteAlert) {
             Button("删除", role: .destructive) {
